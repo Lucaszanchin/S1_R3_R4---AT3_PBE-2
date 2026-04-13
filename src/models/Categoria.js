@@ -7,7 +7,7 @@ export class Categoria {
     constructor(pNome, pDescricao, pId) {
         this.nome = pNome
         this.descricao = pDescricao;
-        this.#id = pId;
+        this.id = pId;
     }
 
     get nome() {

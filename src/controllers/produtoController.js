@@ -71,31 +71,13 @@ const produtoController = {
             }
 
             const caminhoImagem = req.file ? `uploads/image/${req.file.filename}`: undefined;
-
-            const { nome, valor, idCategoria } = req.body;
-
+            const {nome, valor, idCategoria} = req.body;
             const produtoAtual = await produtoRepository.selecionarPorId(id);
-
             if (!produtoAtual) {
                 return res.status(404).json({ message: "Produto não encontrado" });
             }
 
-            const produtoFormatado = {
-                id: produtoAtual.id,
-                nome: produtoAtual.nome ?? produtoAtual.nome_produto,
-                valor: produtoAtual.valor,
-                caminhoImagem: produtoAtual.caminhoImagem ?? produtoAtual.caminho_imagem,
-                idCategoria: produtoAtual.idCategoria ?? produtoAtual.id_categoria
-            };
-
-            const produto = {
-                id: id,
-                nome: nome ?? produtoFormatado.nome,
-                valor: valor ?? produtoFormatado.valor,
-                idCategoria: idCategoria ?? produtoFormatado.idCategoria,
-                caminhoImagem: caminhoImagem ?? produtoFormatado.caminhoImagem
-            };
-
+            const produto = Produto.editar({nome, valor, idCategoria, caminhoImagem}, produtoAtual)
             const resultado = await produtoRepository.atualizarProduto(produto);
 
             return res.status(200).json({message: "Produto atualizado com sucesso", result: resultado});

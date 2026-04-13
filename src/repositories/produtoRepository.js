@@ -23,15 +23,7 @@ const produtoRepository = {
 
     atualizarProduto: async (produto) => {
         const sql = `UPDATE produtos SET nome = ?, valor = ?, caminhoImagem = ?, idCategoria = ? WHERE id = ?`;
-
-        const values = [
-            produto.nome,
-            produto.valor,
-            produto.caminhoImagem,
-            produto.idCategoria,
-            produto.id
-        ];
-
+        const values = [produto.nome, produto.valor, produto.caminhoImagem, produto.idCategoria, produto.id];
         const [rows] = await connection.execute(sql, values);
         return rows;
     },

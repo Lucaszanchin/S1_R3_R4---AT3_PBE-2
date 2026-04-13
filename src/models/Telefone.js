@@ -4,9 +4,9 @@ export class Telefone {
     #numero
 
     constructor(pIdCliente, pNumero, pId) {
-        this.#idCliente = pIdCliente;
-        this.#numero = pNumero;
-        this.#id = pId;;
+        this.idCliente = pIdCliente;
+        this.numero = pNumero;
+        this.id = pId;
     }
 
     get idCliente() {
@@ -65,7 +65,8 @@ export class Telefone {
     static editar(dados, telefoneAtual) {
         return new Telefone(
             dados.idCliente ?? telefoneAtual.idCliente,
-            dados.numero ?? telefoneAtual.numero
+            dados.numero ?? telefoneAtual.numero,
+            dados.id
         )
     }
 }

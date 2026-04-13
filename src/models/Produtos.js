@@ -10,7 +10,7 @@ export class Produto {
         this.valor = pValor;
         this.caminhoImagem = pCaminhoImagem;
         this.idCategoria = pIdCategoria;
-        this.#id = pId;
+        this.id = pId;
     }
 
     get nome() {
