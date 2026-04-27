@@ -1,5 +1,6 @@
 import { Produto } from "../models/Produtos.js";
 import produtoRepository from "../repositories/produtoRepository.js";
+import axios from "axios";
 
 const produtoController = {
 
@@ -112,7 +113,34 @@ const produtoController = {
             res.status(500).json({ message: 'Erro no servidor', errorMessage: error.message });
 
         }
+    },
+
+    buscarEnderecoPorCep: async(cep) =>{
+    try {
+        const cepLimpo = cep.replace("-", "");
+
+        const response = await axios.get(
+            `https://viacep.com.br/ws/${cepLimpo}/json/`
+        );
+
+        const data = response.data;
+
+        if (data.erro) {
+            throw new Error("CEP não encontrado");
+        }
+
+        return {
+            cep: data.cep,
+            rua: data.logradouro,
+            bairro: data.bairro,
+            cidade: data.localidade,
+            estado: data.uf
+        };
+
+    } catch (error) {
+        throw new Error("Erro ao buscar endereço");
     }
+}
 
 };
 

@@ -1,98 +1,112 @@
-import { Cliente } from "../models/Cliente.js";
 import clienteRepository from "../repositories/clienteRepository.js";
+import { Cliente } from "../models/Cliente.js";
+import { validarCPF } from "../utils/validarCpf.js"
+import { limparNumero } from "../utils/limparNumero.js"
+import { Telefone } from "../models/Telefone.js";
+import { Endereco } from "../models/Endereco.js";
+import axios from "axios";
+
+const buscarCep = async (cep) => {
+    const cepLimpo = cep.replace(/\D/g, "");
+    const { data } = await axios.get(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+
+    if (data.erro) throw new Error("CEP não encontrado");
+
+    return data;
+};
 
 const clienteController = {
 
-    buscarTodosClientes: async (req, res) => {
+    async criar(req, res) {
         try {
-            const resultado = await clienteRepository.selecionarTodos();
+            const { cliente, telefone, endereco } = req.body;
 
-            if (!resultado || resultado.length === 0) {
-                return res.status(200).json({ message: 'A tabela não contém dados' });
+            const cpfLimpo = limparNumero(cliente.cpf);
+
+            if (!validarCPF(cpfLimpo)) {
+                return res.status(400).json({ error: "CPF inválido" });
             }
 
-            res.status(201).json({ message: 'Dados recebidos', data: resultado });
+            const novoCliente = new Cliente(cliente.nome, cpfLimpo);
+
+            const cep = await buscarCep(endereco.cep);
+
+            const telefoneLimpo = limparNumero(telefone.numero);
+
+
+            const novoTelefone = new Telefone(telefoneLimpo);
+
+            const novoEndereco = new Endereco(cep.localidade, cep.uf, cep.bairro, cep.logradouro, endereco.numero, endereco.complemento, cep.cep);
+
+            const result = await clienteRepository.inserirCliente(novoCliente, novoTelefone, novoEndereco);
+
+            return res.status(201).json({
+                message: "Cliente criado com sucesso",
+                data: result
+            });
 
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Erro no servidor', errorMessage: error.message });
+            return res.status(500).json({ error: error.message });
         }
     },
 
-    buscarClientePorID: async (req, res) => {
+    async listar(req, res) {
         try {
+            const data = await clienteRepository.selecionarTodos();
+            return res.json(data);
+        } catch (error) {
+            return res.status(500).json({ error: error.message });
+        }
+    },
 
+    async buscarPorId(req, res) {
+        try {
             const id = Number(req.params.id);
-            const resultado = await clienteRepository.selecionarPorId(id);
-
-            if (!resultado) {
-                return res.status(404).json({ message: 'Cliente não encontrado.' });
-            }
-
-            return res.status(201).json(resultado);
-
+            const data = await clienteRepository.selecionarPorId(id);
+            return res.json(data);
         } catch (error) {
-            console.error(error);
-            return res.status(500).json({ message: 'Erro ao buscar produto', errorMessage: error.message });
+            return res.status(500).json({ error: error.message });
         }
     },
 
-    incluirCliente: async (req, res) => {
+    async atualizar(req, res) {
         try {
-
-            const { nome, cpf, cidade, estado, bairro, uf, rua, numero, complemento, cep } = req.body;
-            const cliente = Cliente.criar({ nome, cpf, cidade, estado, bairro, uf, rua, numero, complemento, cep });
-            const resultado = await clienteRepository.inserirCliente(cliente.nome, cliente.cpf, cliente.cidade, cliente.estado, cliente.bairro, cliente.uf, cliente.rua, cliente.numero, cliente.complemento, cliente.cep);
-
-            res.status(201).json({ message: 'Cliente criado com sucesso', result: resultado });
-
-        } catch (error) {
-
-            console.error(error);
-            res.status(500).json({ message: 'Erro no servidor', errorMessage: error.message });
-
-        }
-    },
-
-    atualizarCliente: async (req, res) => {
-        try {
-            const id = Number(req.params.id)
-            const clienteAtual = await clienteRepository.selecionarPorId(id)
-            if (!clienteAtual) {
-                return res.status(404).json({ message: "Cliente não encontrado" })
-            }
-
-            const {nome, cpf, cidade, estado, bairro, uf, rua, numero, complemento, cep} = req.body
-            const cliente = Cliente.editar({ nome, cpf, cidade, estado, bairro, uf, rua, numero, complemento, cep });
-
-            await clienteRepository.atualizarCliente(cliente)
-
-            res.status(201).json({ message: "Cliente atualizado com sucesso" })
-
-        } catch (error) {
-            console.error(error)
-            res.status(500).json({ message: "Erro no servidor" })
-        }
-    },
-
-    excluirCliente: async (req, res) => {
-        try {
-
             const id = Number(req.params.id);
-            const cliente = await clienteRepository.selecionarPorId(id);
-            if (!cliente) {
-                return res.status(404).json({ message: 'Produto não encontrado.' });
+            const { cliente, telefone, endereco } = req.body;
+
+            const clienteObj = new Cliente(cliente.nome, cliente.cpf, id);
+
+            let telObj = null;
+            if (telefone?.numero) {
+                telObj = new Telefone(telefone.numero, id);
             }
 
-            const exclusao = await clienteRepository.deletarCliente(id);
-            res.status(201).json({ message: 'Cliente excluído com sucesso', detalhes: exclusao });
+            let endObj = null;
+            if (endereco?.cep) {
+                const cep = await buscarCep(endereco.cep);
+
+                endObj = new Endereco(cep.localidade, cep.uf, cep.bairro, cep.logradouro, endereco.numero, endereco.complemento, cep.cep);
+            }
+
+            await clienteRepository.atualizarCliente(clienteObj, telObj, endObj);
+
+            return res.json({ message: "Atualizado com sucesso" });
 
         } catch (error) {
+            return res.status(500).json({ error: error.message });
+        }
+    },
 
-            console.error(error);
-            res.status(500).json({ message: 'Erro no servidor', errorMessage: error.message });
+    async deletar(req, res) {
+        try {
+            const id = Number(req.params.id);
+            await clienteRepository.deletarCliente(id);
+
+            return res.json({ message: "Deletado com sucesso" });
+        } catch (error) {
+            return res.status(500).json({ error: error.message });
         }
     }
-}
+};
 
 export default clienteController;
